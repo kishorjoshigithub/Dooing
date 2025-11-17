@@ -1,5 +1,5 @@
 import User from "../models/user.model.js";
-import { errorHandler } from "./utils/error.js";
+import { errorHandler } from "../middlewares/error.middleware.js";
 import jwt from "jsonwebtoken";
 
 //@ desc   Register a new user
@@ -85,6 +85,26 @@ export const signin = async (req, res, next) => {
 
     res.status(200).cookie("access_token", token, options).json({
       message: "Login successful",
+      LoggedInUser,
+    });
+  } catch (error) {
+    console.log(error);
+    next(error);
+  }
+};
+
+//@ desc Profile
+//@ route GET /api/auth/user-profile
+//@ Private
+export const userProfile = async (req, res, next) => {
+  try {
+    const user = req.user;
+    const LoggedInUser = await User.findById(user._id).select("-password");
+    if (!LoggedInUser) {
+      return next(errorHandler(404, "User not found"));
+    }
+    res.status(200).json({
+      message: "Profile fetched successfully",
       LoggedInUser,
     });
   } catch (error) {
