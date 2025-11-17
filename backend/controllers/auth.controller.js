@@ -139,3 +139,26 @@ export const updateUserProfile = async (req, res, next) => {
     next(error);
   }
 };
+
+//@ desc   Upload user profile image
+//@ route POST /api/auth/upload-image
+//@ Private
+export const uploadImage = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return next(errorHandler(400, "No file uploaded"));
+    }
+    const imageUrl = `${req.protocol}://${req.get("host")}/uploads/${
+      req.file.filename
+    }`;
+    const user = await User.findById(req.user._id);
+    user.profileImageUrl = imageUrl;
+    await user.save();
+    res.status(200).json({
+      message: "Image uploaded successfully",
+      imageUrl,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
