@@ -1,20 +1,21 @@
 import User from "../models/user.model.js";
+import { errorHandler } from "./utils/error.js";
 
 //@ desc   Register a new user
 //@ route POST /api/auth/sign-up
 //@ Public
-export const signup = async (req, res) => {
+export const signup = async (req, res, next) => {
   try {
     const { name, email, password, profileImageUrl, adminJoinCode } = req.body;
 
     //check if all fields are filled
     if (!name || !email || !password) {
-      return res.status(400).json({ message: "All fields are required" });
+      return next(errorHandler(400, "Please fill all required fields"));
     }
 
     const isAlreadyExist = await User.findOne({ email });
     if (isAlreadyExist) {
-      return res.status(400).json({ message: "User already exists" });
+      return next(errorHandler(400, "User with this email already exists"));
     }
 
     //check user role
@@ -41,6 +42,6 @@ export const signup = async (req, res) => {
     });
   } catch (error) {
     console.log(error);
-    res.status(500).json({ message: "Server error" });
+    next(error);
   }
 };
