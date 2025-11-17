@@ -71,9 +71,13 @@ export const signin = async (req, res, next) => {
     }
 
     //generate jwt token
-    const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRETKEY, {
-      expiresIn: process.env.JWT_EXPIRES_IN,
-    });
+    const token = jwt.sign(
+      { _id: user._id, role: user.role },
+      process.env.JWT_SECRETKEY,
+      {
+        expiresIn: process.env.JWT_EXPIRES_IN,
+      }
+    );
 
     const LoggedInUser = await User.findById(user._id).select("-password");
     const options = {
