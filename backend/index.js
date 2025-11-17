@@ -18,6 +18,11 @@ app.use(
 
 app.use(express.json());
 
+//Routes
+import authRouter from "./routes/auth.route.js";
+
+app.use("/api/auth", authRouter);
+
 connectDB()
   .then(() => {
     app.listen(port, () => {
