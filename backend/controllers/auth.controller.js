@@ -112,3 +112,30 @@ export const userProfile = async (req, res, next) => {
     next(error);
   }
 };
+
+//@ desc   Update user profile
+//@ route PUT /api/auth/update-profile
+//@ Private
+export const updateUserProfile = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return next(errorHandler(404, "User not found"));
+    }
+
+    user.name = req.body.name || user.name;
+    user.email = req.body.email || user.email;
+    user.password = req.body.password || user.password;
+    user.profileImageUrl = req.body.profileImageUrl || user.profileImageUrl;
+
+    const updatedUser = await user.save({ validateBeforeSave: false });
+    const SafeUser = await User.findById(updatedUser._id).select("-password");
+
+    res.status(200).json({
+      message: "Profile updated successfully",
+      SafeUser,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
