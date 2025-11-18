@@ -22,7 +22,7 @@ const taskSchema = new Schema(
       type: String,
       required: true,
     },
-    desciption: {
+    description: {
       type: String,
     },
     priority: {

@@ -37,3 +37,56 @@ export const createTask = async (req, res, next) => {
     next(error);
   }
 };
+
+export const getTasks = async (req, res, next) => {
+  try {
+    const { status } = req.query;
+
+    const filter = {};
+    if (status) filter.status = status;
+
+    if (req.user.role !== "admin") {
+      filter.assignedTo = req.user._id;
+    }
+
+    let tasks = await Task.find(filter).populate(
+      "assignedTo",
+      "name email profileImageUrl"
+    );
+
+    tasks = tasks.map((task) => {
+      const completedCount = task.todoChecklist.filter(
+        (item) => item.completed
+      ).length;
+      return { ...task._doc, completedCount };
+    });
+
+    const countTasks = (taskStatus) => {
+      const summaryFilter = { ...filter };
+      if (taskStatus) summaryFilter.status = taskStatus;
+      return Task.countDocuments(summaryFilter);
+    };
+
+    const [allTasks, pendingTasks, inProgressTasks, completedTasks] =
+      await Promise.all([
+        countTasks(),
+        countTasks("Pending"),
+        countTasks("In Progress"),
+        countTasks("Completed"),
+      ]);
+
+    return res.status(200).json({
+      success: true,
+      message: "Tasks retrieved successfully",
+      tasks,
+      statusSummary: {
+        allTasks,
+        pendingTasks,
+        inProgressTasks,
+        completedTasks,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
