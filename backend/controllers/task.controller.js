@@ -110,3 +110,32 @@ export const getTaskById = async (req, res, next) => {
     next(error);
   }
 };
+
+export const updateTask = async (req, res, next) => {
+  try {
+    const task = await Task.findById(req.params.id);
+    if (!task) {
+      return next(errorHandler(404, "Task not found"));
+    }
+    task.title = req.body.title || task.title;
+    task.description = req.body.description || task.description;
+    task.priority = req.body.priority || task.priority;
+    task.status = req.body.status || task.status;
+    task.dueDate = req.body.dueDate || task.dueDate;
+    task.assignedTo = req.body.assignedTo || task.assignedTo;
+    task.todoChecklist = req.body.todoChecklist || task.todoChecklist;
+    task.attachments = req.body.attachments || task.attachments;
+
+    if (!Array.isArray(task.assignedTo) || task.assignedTo.length === 0) {
+      return next(errorHandler(400, "assignedTo must be a non-empty array"));
+    }
+    const updatedTask = await task.save();
+    return res.status(200).json({
+      success: true,
+      message: "Task updated successfully",
+      updatedTask,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
