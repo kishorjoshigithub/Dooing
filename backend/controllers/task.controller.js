@@ -239,3 +239,77 @@ export const updateTaskChecklist = async (req, res, next) => {
     next(error);
   }
 };
+
+export const getDashboardData = async (req, res, next) => {
+  try {
+    //Fetch Stats
+    const totalTasks = await Task.countDocuments();
+    const completedTasks = await Task.countDocuments({ status: "Completed" });
+    const pendingTasks = await Task.countDocuments({ status: "Pending" });
+    const inProgressTasks = await Task.countDocuments({
+      status: "In Progress",
+    });
+    const overdueTasks = await Task.countDocuments({
+      dueDate: { $lt: new Date() },
+    });
+
+    const taskStatuses = ["Pending", "In Progress", "Completed"];
+    const taskDistributionRow = await Task.aggregate([
+      {
+        $group: {
+          _id: "$status",
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const taskDistribution = taskStatuses.reduce((acc, status) => {
+      const formattedKey = status.replace(/\s+/g, "");
+      acc[formattedKey] =
+        taskDistributionRow.find((row) => row._id === status)?.count || 0;
+      return acc;
+    }, {});
+
+    taskDistribution["All"] = totalTasks;
+
+    const taskPriorities = ["Low", "Medium", "High"];
+    const taskPriorityDistributionRow = await Task.aggregate([
+      {
+        $group: {
+          _id: "$priority",
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const taskPriorityDistribution = taskPriorities.reduce((acc, priority) => {
+      acc[priority] =
+        taskPriorityDistributionRow.find((row) => row._id === priority)
+          ?.count || 0;
+      return acc;
+    }, {});
+
+    //recent 5 tasks
+    const recentTasks = await Task.find()
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .select("title status priority dueDate createdAt");
+
+    return res.status(200).json({
+      success: true,
+      message: "Dashboard data retrieved successfully",
+      totalTasks,
+      completedTasks,
+      pendingTasks,
+      inProgressTasks,
+      overdueTasks,
+      charts: {
+        taskDistribution,
+        taskPriorityDistribution,
+      },
+      recentTasks,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
