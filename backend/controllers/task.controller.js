@@ -1,5 +1,6 @@
 import Task from "../models/task.model.js";
 import { errorHandler } from "../middlewares/error.middleware.js";
+import mongoose from "mongoose";
 
 export const createTask = async (req, res, next) => {
   try {
@@ -291,6 +292,111 @@ export const getDashboardData = async (req, res, next) => {
 
     //recent 5 tasks
     const recentTasks = await Task.find()
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .select("title status priority dueDate createdAt");
+
+    return res.status(200).json({
+      success: true,
+      message: "Dashboard data retrieved successfully",
+      totalTasks,
+      completedTasks,
+      pendingTasks,
+      inProgressTasks,
+      overdueTasks,
+      charts: {
+        taskDistribution,
+        taskPriorityDistribution,
+      },
+      recentTasks,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getUserDashboardData = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+
+    const userObjectId = new mongoose.Types.ObjectId(userId);
+
+    if (req.user.role === "admin") {
+      return next(
+        errorHandler(
+          403,
+          "You are not authorized to access user dashboard data"
+        )
+      );
+    }
+
+    //Fetch Stats
+    const totalTasks = await Task.countDocuments({ assignedTo: userId });
+    const completedTasks = await Task.countDocuments({
+      assignedTo: userId,
+      status: "Completed",
+    });
+    const pendingTasks = await Task.countDocuments({
+      assignedTo: userId,
+      status: "Pending",
+    });
+    const inProgressTasks = await Task.countDocuments({
+      assignedTo: userId,
+      status: "In Progress",
+    });
+    const overdueTasks = await Task.countDocuments({
+      assignedTo: userId,
+      status: "$ne: Completed",
+      dueDate: { $lt: new Date() },
+    });
+
+    const taskStatuses = ["Pending", "In Progress", "Completed"];
+    const taskDistributionRow = await Task.aggregate([
+      {
+        $match: {
+          assignedTo: userObjectId,
+        },
+      },
+      {
+        $group: {
+          _id: "$status",
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+    const taskDistribution = taskStatuses.reduce((acc, status) => {
+      const formattedKey = status.replace(/\s+/g, "");
+      acc[formattedKey] =
+        taskDistributionRow.find((row) => row._id === status)?.count || 0;
+      return acc;
+    }, {});
+
+    taskDistribution["All"] = totalTasks;
+
+    const taskPriorities = ["Low", "Medium", "High"];
+    const taskPriorityDistributionRow = await Task.aggregate([
+      {
+        $match: {
+          assignedTo: userObjectId,
+        },
+      },
+      {
+        $group: {
+          _id: "$priority",
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const taskPriorityDistribution = taskPriorities.reduce((acc, priority) => {
+      acc[priority] =
+        taskPriorityDistributionRow.find((row) => row._id === priority)
+          ?.count || 0;
+      return acc;
+    }, {});
+
+    //recent 5 tasks
+    const recentTasks = await Task.find({ assignedTo: userId })
       .sort({ createdAt: -1 })
       .limit(5)
       .select("title status priority dueDate createdAt");

@@ -9,6 +9,7 @@ import {
   getDashboardData,
   getTaskById,
   getTasks,
+  getUserDashboardData,
   updateTask,
   updateTaskChecklist,
   updateTaskStatus,
@@ -18,6 +19,7 @@ const router = express.Router();
 router.post("/create", verifyToken, adminOnly, createTask);
 router.get("/", verifyToken, getTasks);
 router.get("/dashboard-data", verifyToken, adminOnly, getDashboardData);
+router.get("/user-dashboard-data", verifyToken, getUserDashboardData);
 router.get("/:id", verifyToken, getTaskById);
 router.put("/:id", verifyToken, adminOnly, updateTask);
 router.delete("/:id", verifyToken, adminOnly, deleteTask);
