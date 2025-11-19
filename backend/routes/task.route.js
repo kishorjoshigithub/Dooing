@@ -5,6 +5,7 @@ import {
 } from "../middlewares/verifyUser.middleware.js";
 import {
   createTask,
+  deleteTask,
   getTaskById,
   getTasks,
   updateTask,
@@ -15,4 +16,5 @@ router.post("/create", verifyToken, adminOnly, createTask);
 router.get("/", verifyToken, getTasks);
 router.get("/:id", verifyToken, getTaskById);
 router.put("/:id", verifyToken, adminOnly, updateTask);
+router.delete("/:id", verifyToken, adminOnly, deleteTask);
 export default router;
