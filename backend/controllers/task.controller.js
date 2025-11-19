@@ -156,3 +156,37 @@ export const deleteTask = async (req, res, next) => {
     next(error);
   }
 };
+
+export const updateTaskStatus = async (req, res, next) => {
+  try {
+    const task = await Task.findById(req.params.id);
+    if (!task) {
+      return next(errorHandler(404, "Task not found"));
+    }
+
+    const isAssigned = task.assignedTo.some((userId) => {
+      userId.toString() === req.user._id.toString();
+    });
+    if (!isAssigned && req.user.role !== "admin") {
+      return next(
+        errorHandler(403, "You are not authorized to update this task status")
+      );
+    }
+
+    task.status = req.body.status || task.status;
+    if (task.status === "Completed") {
+      task.todoChecklist.forEach((item) => {
+        item.completed = true;
+      });
+    }
+
+    await task.save();
+    res.status(200).json({
+      success: true,
+      message: "Task status updated successfully",
+      task,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
